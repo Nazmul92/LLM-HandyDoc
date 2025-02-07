@@ -6,7 +6,7 @@ tiktoken
 faiss-cpu
 libmagic
 python-magic
-python-magic-bin
+python-magic
 OpenAI
 langchain_community
 langchain_groq
