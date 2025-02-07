@@ -1,0 +1,14 @@
+[theme]
+primaryColor = "#1E90FF"  # Dodger Blue
+
+# Background color for the main content area
+backgroundColor = "#FFFFFF"  # White
+
+# Background color for sidebars and secondary elements
+secondaryBackgroundColor = "#F0F8FF"  # Alice Blue
+
+# Text color
+textColor = "#000080"  # Navy Blue
+
+# Font family
+font = "sans serif"
