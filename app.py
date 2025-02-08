@@ -7,12 +7,15 @@ from langchain_community.llms import OpenAI
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredWordDocumentLoader
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 from docx import Document  # For .docx files
 from dotenv import load_dotenv
+from transformers import AutoTokenizer
 
+
+os.environ["STREAMLIT_SERVER_RUN_ON_SAVE"] = "false"
 load_dotenv()  # Load environment variables from .env
 
 # App Title and Description
@@ -21,9 +24,9 @@ st.subheader("LLM-based Knowledge Extraction Tool")
 
 # Sidebar for File Upload
 st.sidebar.title("Upload Files")
-st.sidebar.markdown("Upload files (.pdf, .txt, .doc) to extract knowledge and get your answer.")
-uploaded_files = st.sidebar.file_uploader("Choose Files", type=["pdf", "txt", "doc", "docx"], accept_multiple_files=True)
-process_files_clicked = st.sidebar.button("Process Files")
+st.sidebar.markdown("Upload files to extract knowledge and get your answer.")
+uploaded_files = st.sidebar.file_uploader("Choose File", type=["pdf", "txt", "doc", "docx"], accept_multiple_files=True)
+process_files_clicked = st.sidebar.button("Process File")
 
 # Main Content
 main_placeholder = st.empty()
@@ -44,6 +47,14 @@ def load_document(file_path, file_extension):
     else:
         raise ValueError("Unsupported file type")
 
+# Function to truncate text based on token limit
+def truncate_text(text, max_tokens=512):
+    tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
+    tokens = tokenizer.tokenize(text)
+    if len(tokens) > max_tokens:
+        tokens = tokens[:max_tokens]
+    return tokenizer.convert_tokens_to_string(tokens)
+
 # Process Files
 if process_files_clicked and uploaded_files:
     with st.spinner("Processing files..."):
@@ -62,7 +73,10 @@ if process_files_clicked and uploaded_files:
             
             # Load the file based on its type
             try:
-                docs.extend(load_document(tmp_file_path, file_extension))
+                loaded_docs = load_document(tmp_file_path, file_extension)
+                for doc in loaded_docs:
+                    doc.page_content = truncate_text(doc.page_content)  # Truncate text to fit token limit
+                docs.extend(loaded_docs)
             except Exception as e:
                 st.error(f"Error loading {uploaded_file.name}: {e}")
             finally:
@@ -71,7 +85,8 @@ if process_files_clicked and uploaded_files:
         # Split data
         text_splitter = RecursiveCharacterTextSplitter(
             separators=['\n\n', '\n', '.', ','],
-            chunk_size=1000
+            chunk_size=500,  # Smaller chunk size to ensure token limit is not exceeded
+            chunk_overlap=50  # Add overlap to maintain context
         )
         main_placeholder.text("Text Splitter Starting...")
         docs = text_splitter.split_documents(docs)
@@ -101,11 +116,11 @@ query = st.text_input("Ask a Question")
 
 if query:
     if os.path.exists(file_path):
-        with st.spinner("Searching answers..."):
+        with st.spinner("Searching..."):
             with open(file_path, "rb") as f:
                 vectorstore = pickle.load(f)
                 chain = RetrievalQAWithSourcesChain.from_llm(llm=llm, retriever=vectorstore.as_retriever())
-                result = chain({"question": query}, return_only_outputs=True)
+                result = chain.invoke({"question": query}, return_only_outputs=True)
                 
                 # Display Answer
                 st.markdown("### Answer")
@@ -120,3 +135,7 @@ if query:
                         st.write(f"- {source}")
     else:
         st.warning("Please upload and process files first.")
+if __name__ == "__main__":
+    #st.runtime.legacy_caching.clear_cache()  # Optional: Clear cache if needed
+    #st.set_page_config(page_title="HandyDoc", page_icon="📄")  # Set page config
+    pass

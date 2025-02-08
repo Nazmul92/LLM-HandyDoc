@@ -1,14 +1,8 @@
 [theme]
-primaryColor = "#1E90FF"  # Dodger Blue
-
+primaryColor = "#32CD32"  # Lime Green
 # Background color for the main content area
-backgroundColor = "#FFFFFF"  # White
-
+backgroundColor = "#000000"  # White
 # Background color for sidebars and secondary elements
-secondaryBackgroundColor = "#F0F8FF"  # Alice Blue
-
-# Text color
-textColor = "#000080"  # Navy Blue
-
-# Font family
+secondaryBackgroundColor = "#036478"  # Honeydew
+textColor = "#FFFFFF"  # Dark Green
 font = "sans serif"
